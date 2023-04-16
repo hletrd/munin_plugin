@@ -2,7 +2,7 @@
 
 . "$MUNIN_LIBDIR/plugins/plugin.sh"
 
-USERS="$(ps ax --format user | tail +2 | sort -u)"
+USERS="$(ps ax --format user | tail +2 | sort -u | grep -v -e '^root$')"
 
 if [ "$1" = "autoconf" ]; then
     echo "yes"
@@ -16,7 +16,7 @@ if [ "$1" = "config" ]; then
     echo "graph_scale no"
     echo "graph_category cpu"
     echo "graph_info This graph shows CPU usage grouped by users."
-    
+
     echo "graph_period second"
     for user in $USERS
     do
@@ -31,7 +31,7 @@ fi
 
 for user in $USERS
 do
-  stats="$stats\n`ps ax --format "%cpu user" | egrep $user$ | awk 'BEGIN{total=0}; \
+  stats="$stats\n`ps ax --format "%cpu user" | grep -v -e '^root$' | egrep $user$ | awk 'BEGIN{total=0}; \
     {total += $1};END{print $2".value "total}'`"
 done
 
