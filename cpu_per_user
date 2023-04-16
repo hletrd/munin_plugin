@@ -1,0 +1,37 @@
+#!/bin/sh
+
+. "$MUNIN_LIBDIR/plugins/plugin.sh"
+
+USERS="$(ps ax --format user | tail +2 | sort -u)"
+
+if [ "$1" = "autoconf" ]; then
+    echo "yes\n";
+    exit 0;
+fi
+
+if [ "$1" = "config" ]; then
+    echo "graph_title CPU usage by user"
+    echo "graph_args --base 1000 -r --lower-limit 0"
+    echo "graph_vlabel %"
+    echo "graph_scale no"
+    echo "graph_category cpu"
+    echo "graph_info This graph shows CPU usage grouped by users."
+    
+    echo "graph_period second"
+    for user in $USERS
+    do
+        user_cleaned="$(clean_fieldname "$user")"
+        echo "${user_cleaned}.label $user"
+        echo "${user_cleaned}.info CPU used by user $user"
+        echo "${user_cleaned}.type GAUGE"
+        echo "${user_cleaned}.draw AREASTACK"
+    done
+fi
+
+for user in $USERS
+do
+  stats="$stats\n`ps ax --format "%cpu user" | egrep $user$ | awk 'BEGIN{total=0}; \
+    {total += $1};END{print $2".value "total}'`"
+done
+
+echo $stats | grep -v ^$ | sort -n
