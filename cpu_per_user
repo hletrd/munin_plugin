@@ -5,8 +5,8 @@
 USERS="$(ps ax --format user | tail +2 | sort -u)"
 
 if [ "$1" = "autoconf" ]; then
-    echo "yes\n";
-    exit 0;
+    echo "yes"
+    exit 0
 fi
 
 if [ "$1" = "config" ]; then
@@ -26,6 +26,7 @@ if [ "$1" = "config" ]; then
         echo "${user_cleaned}.type GAUGE"
         echo "${user_cleaned}.draw AREASTACK"
     done
+    exit 0
 fi
 
 for user in $USERS
