@@ -2,7 +2,7 @@
 
 . "$MUNIN_LIBDIR/plugins/plugin.sh"
 
-USERS="$(ps ax --format user | tail +2 | sort -u | grep -v -e '^root$')"
+USERS="$(awk  -F':' '$3>999 {print $1}' /etc/passwd | grep -v nobody)"
 
 if [ "$1" = "autoconf" ]; then
     echo "yes"
@@ -35,4 +35,4 @@ do
     {total += $1};END{print $2".value "total}'`"
 done
 
-echo $stats | grep -v ^$ | sort -n
+echo $stats | grep -v -e ^.value | sort -n
