@@ -31,8 +31,8 @@ fi
 
 for user in $USERS
 do
-  stats="$stats\n`ps ax --format "%cpu user" | grep -v -e '^root$' | egrep $user$ | awk 'BEGIN{total=0}; \
-    {total += $1};END{print $2".value "total}'`"
+  stats="$stats\n$user`ps ax --format "%cpu user" | grep -v -e '^root$' | egrep $user$ | awk 'BEGIN{total=0}; \
+    {total += $1};END{print ".value "total}'`"
 done
 
 echo $stats | grep -v -e ^.value | sort -n
