@@ -1,0 +1,88 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import subprocess
+
+def users():
+  users = []
+  for line in open('/etc/passwd', 'r').readlines():
+    line = list(map(lambda x: x.strip(), line.split(':')))
+    if line[0] != 'nobody' and int(line[2]) > 999:
+      users.append(line[0])
+  return users
+
+def autoconf():
+  print('yes')
+  sys.exit(0)
+
+graph_type = sys.argv[0].split('/')[-1].split('_')[-1]
+graph_types_supported = ['usage', 'power', 'memory']
+graph_types_units = {
+  'usage': '%',
+  'power': 'W',
+  'memory': 'MB'
+}
+
+
+def config():
+  print('graph_title GPU {} by user'.format(graph_type))
+  print('graph_args --base 1000 -r --lower-limit 0')
+  print('graph_vlabel {}'.format(graph_types_units[graph_type]))
+  print('graph_scale no')
+  print('graph_category gpu')
+  print('graph_info This graph shows GPU {} grouped by users.'.format(graph_type))
+  print('graph_period second')
+
+  for user in users():
+    print('{}.label {}'.format(user, user))
+    print('{}.info GPU {} by user {}'.format(user, graph_type, user))
+    print('{}.type GAUGE'.format(user))
+    print('{}.draw AREASTACK'.format(user))
+  sys.exit(0)
+
+if graph_type not in graph_types_supported:
+  sys.exit(1)
+
+if len(sys.argv) > 1:
+  if sys.argv[1] == 'autoconf':
+    autoconf()
+  elif sys.argv[1] == 'config':
+    config()
+
+apps_cmd = "nvidia-smi --query-compute-apps=pid,gpu_bus_id,used_memory --format=csv,noheader,nounits"
+gpus_cmd = "nvidia-smi --query-gpu=gpu_bus_id,utilization.gpu,power.draw --format=csv,noheader,nounits"
+ps_cmd = "ps -p {} -o user="
+
+apps = subprocess.check_output(apps_cmd.split(' ')).decode('utf-8').split('\n')
+gpus = subprocess.check_output(gpus_cmd.split(' ')).decode('utf-8').split('\n')
+
+user_stats = {}
+gpu_stats = {}
+
+for i in gpus:
+  if i == '':
+    continue
+  values = map(lambda x: x.strip(), i.split(','))
+  bus_id, util, power = values
+  if bus_id == '':
+    continue
+  gpu_stats[bus_id] = (float(util), float(power))
+
+for i in apps:
+  if i == '':
+    continue
+  values = map(lambda x: x.strip(), i.split(','))
+  pid, bus_id, mem = values
+  if pid == '':
+    continue
+  user = subprocess.check_output(ps_cmd.format(pid).split(' ')).decode('utf-8').strip()
+  if bus_id in gpu_stats:
+    if user not in user_stats:
+      user_stats[user] = [0, 0, 0]
+    user_stats[user][0] += gpu_stats[bus_id][0]
+    user_stats[user][1] += gpu_stats[bus_id][1]
+    user_stats[user][2] += float(mem)
+
+for k, v in user_stats.items():
+  print('{}.value {}'.format(k, v[graph_types_supported.index(graph_type)]))
