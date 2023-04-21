@@ -58,6 +58,7 @@ apps = subprocess.check_output(apps_cmd.split(' ')).decode('utf-8').split('\n')
 gpus = subprocess.check_output(gpus_cmd.split(' ')).decode('utf-8').split('\n')
 
 user_stats = {}
+user_flags = dict([(i, False) for i in users()])
 gpu_stats = {}
 
 for i in gpus:
@@ -80,9 +81,13 @@ for i in apps:
   if bus_id in gpu_stats:
     if user not in user_stats:
       user_stats[user] = [0, 0, 0]
+      user_flags[user] = True
     user_stats[user][0] += gpu_stats[bus_id][0]
     user_stats[user][1] += gpu_stats[bus_id][1]
     user_stats[user][2] += float(mem)
 
 for k, v in user_stats.items():
   print('{}.value {}'.format(k, v[graph_types_supported.index(graph_type)]))
+for k, v in user_flags.items():
+  if not v:
+    print('{}.value 0'.format(k))
